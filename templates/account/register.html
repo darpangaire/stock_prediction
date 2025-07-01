@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+<div class="bg-gradient-to-tr from-blue-50 via-purple-50 to-pink-100 min-h-screen flex items-center justify-center">
+  <div class="bg-white/90 rounded-3xl shadow-2xl p-10 w-full max-w-md border border-blue-100 relative overflow-hidden">
+    <div class="absolute -top-10 -right-10 opacity-20 pointer-events-none select-none">
+      <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
+        <circle cx="60" cy="60" r="60" fill="url(#paint0_radial)"/>
+        <defs>
+          <radialGradient id="paint0_radial" cx="0" cy="0" r="1" gradientTransform="translate(60 60) rotate(90) scale(60)" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#6366F1"/>
+            <stop offset="1" stop-color="#EC4899" stop-opacity="0.5"/>
+          </radialGradient>
+        </defs>
+      </svg>
+    </div>
+    <h2 class="text-3xl font-extrabold mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-700 via-purple-700 to-pink-600 drop-shadow">Register</h2>
+    <form id="registerForm" class="space-y-6">
+      <div>
+        <label class="block text-blue-700 font-semibold mb-1" for="first_name">First Name</label>
+        <input type="text" id="first_name" name="first_name" class="w-full px-4 py-2 border border-blue-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 bg-blue-50/50 text-lg transition" required>
+      </div>
+      <div>
+        <label class="block text-blue-700 font-semibold mb-1" for="last_name">Last Name</label>
+        <input type="text" id="last_name" name="last_name" class="w-full px-4 py-2 border border-blue-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 bg-blue-50/50 text-lg transition" required>
+      </div>
+      <div>
+        <label class="block text-blue-700 font-semibold mb-1" for="email">Email</label>
+        <input type="email" id="email" name="email" autocomplete="username" class="w-full px-4 py-2 border border-blue-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 bg-blue-50/50 text-lg transition" required>
+      </div>
+      <div>
+        <label class="block text-blue-700 font-semibold mb-1" for="password">Password</label>
+        <input type="password" id="password" name="password" autocomplete="new-password" class="w-full px-4 py-2 border border-blue-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 bg-blue-50/50 text-lg transition" required>
+      </div>
+      <div>
+        <label class="block text-blue-700 font-semibold mb-1" for="password2">Confirm Password</label>
+        <input type="password" id="password2" name="password2" autocomplete="new-password" class="w-full px-4 py-2 border border-blue-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 bg-blue-50/50 text-lg transition" required>
+      </div>
+      <button type="submit" class="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:to-pink-700 text-white py-3 rounded-full font-extrabold shadow-lg transition-all tracking-wide text-lg">Register</button>
+    </form>
+    <div id="formMessage" class="mt-6 text-center"></div>
+  </div>
+  <script>
+    const form = document.getElementById('registerForm');
+    const messageDiv = document.getElementById('formMessage');
+
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      messageDiv.innerHTML = '';
+      const data = {
+        first_name: form.first_name.value,
+        last_name: form.last_name.value,
+        email: form.email.value,
+        password: form.password.value,
+        password2: form.password2.value,
+      };
+      try {
+        const response = await fetch('/account/api-register/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: JSON.stringify(data),
+        });
+        const resData = await response.json();
+
+        if (response.ok) {
+          window.location.href = "{% url 'email_verification_alert' %}";
+        } else {
+          // Display errors
+          let errorHtml = '<div class="text-red-600 font-semibold mb-2">Registration failed:</div>';
+          if (typeof resData === 'object') {
+            for (const [field, errors] of Object.entries(resData)) {
+              errorHtml += `<div class="text-red-500"><span class="font-semibold">${field}:</span> ${Array.isArray(errors) ? errors.join(', ') : errors}</div>`;
+            }
+          } else {
+            errorHtml += `<div class="text-red-500">${resData}</div>`;
+          }
+          messageDiv.innerHTML = errorHtml;
+        }
+      } catch (error) {
+        messageDiv.innerHTML = `<div class="text-red-600">An error occurred. Please try again later.</div>`;
+      }
+    });
+  </script>
+</div>
+
+{% endblock %}

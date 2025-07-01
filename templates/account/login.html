@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="bg-gradient-to-tr from-blue-50 via-purple-50 to-pink-100 min-h-screen flex items-center justify-center">
+  <div class="bg-white/90 rounded-3xl shadow-2xl p-10 w-full max-w-md border border-blue-100 relative overflow-hidden">
+    <div class="absolute -top-10 -right-10 opacity-20 pointer-events-none select-none">
+      <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
+        <circle cx="60" cy="60" r="60" fill="url(#paint0_radial)"/>
+        <defs>
+          <radialGradient id="paint0_radial" cx="0" cy="0" r="1" gradientTransform="translate(60 60) rotate(90) scale(60)" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#6366F1"/>
+            <stop offset="1" stop-color="#EC4899" stop-opacity="0.5"/>
+          </radialGradient>
+        </defs>
+      </svg>
+    </div>
+    <h2 class="text-3xl font-extrabold mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-700 via-purple-700 to-pink-600 drop-shadow">Login</h2>
+    {% if request.GET.verified == "1" %}
+      <div class="bg-green-50 border border-green-300 text-green-700 px-4 py-2 rounded-xl mb-4 flex items-center gap-2 shadow">
+        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        Email verification successful! You can now login.
+      </div>
+    {% elif request.GET.verified == "0" %}
+      <div class="bg-red-50 border border-red-300 text-red-700 px-4 py-2 rounded-xl mb-4 flex items-center gap-2 shadow">
+        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        Invalid or expired email verification link.
+      </div>
+    {% endif %}
+    <form id="loginForm" class="space-y-6">
+      <div>
+        <label class="block text-blue-700 font-semibold mb-1" for="email">Email</label>
+        <input type="email" id="email" name="email" required autocomplete="username"
+          class="w-full px-4 py-2 border border-blue-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 bg-blue-50/50 text-lg transition">
+      </div>
+      <div>
+        <label class="block text-blue-700 font-semibold mb-1" for="password">Password</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password"
+          class="w-full px-4 py-2 border border-blue-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 bg-blue-50/50 text-lg transition">
+      </div>
+      <button type="submit" class="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:to-pink-700 text-white py-3 rounded-full font-extrabold shadow-lg transition-all tracking-wide text-lg">Login</button>
+    </form>
+    <div id="loginMessage" class="mt-6 text-center"></div>
+  </div>
+</div>
+<script>
+  const form = document.getElementById('loginForm');
+  const msgDiv = document.getElementById('loginMessage');
+
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    msgDiv.innerHTML = "";
+
+    const data = {
+      email: form.email.value,
+      password: form.password.value
+    };
+
+    try {
+      const response = await fetch('/account/api-login/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(data),
+        credentials: 'include'
+      });
+
+      const resData = await response.json();
+
+      if (response.ok) {
+        msgDiv.innerHTML = `<div class="text-green-600 font-semibold">${resData.msg || "Login successful!"}</div>`;
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 1200);
+      } else {
+        let errorHtml = '<div class="text-red-600 font-semibold mb-2">Login failed:</div>';
+        if (typeof resData === "object") {
+          for (const [field, errors] of Object.entries(resData)) {
+            errorHtml += `<div class="text-red-500"><span class="font-semibold">${field}:</span> ${Array.isArray(errors) ? errors.join(', ') : errors}</div>`;
+          }
+        } else {
+          errorHtml += `<div class="text-red-500">${resData}</div>`;
+        }
+        msgDiv.innerHTML = errorHtml;
+      }
+    } catch (err) {
+      msgDiv.innerHTML = `<div class="text-red-600">An error occurred. Please try again.</div>`;
+    }
+  });
+</script>
+{% endblock %}
