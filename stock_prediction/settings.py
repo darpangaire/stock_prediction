@@ -14,10 +14,15 @@ from pathlib import Path
 import os
 from datetime import timedelta
 from dotenv import load_dotenv
+import environ
 load_dotenv()
+
+env = environ.Env()
+environ.Env.read_env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+MODEL_PATH = env("MODEL_PATH",default="stock_prediction_model.keras")
 
 
 # Quick-start development settings - unsuitable for production
@@ -44,6 +49,7 @@ INSTALLED_APPS = [
     'account',
     'rest_framework',
     'rest_framework_simplejwt',
+    'api',
     
     
 ]
@@ -70,6 +76,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'account.context_processor.get_user_from_jwt',
             ],
         },
     },

@@ -58,7 +58,7 @@ class UserLoginView(APIView):
       token = get_tokens_for_user(user)
       
       
-      response =  Response({"msg":"Login Successfull","refresh":token['refresh']},status=status.HTTP_200_OK)
+      response =  Response({"msg":"Login Successfull","refresh":token['refresh'],"access":token['access']},status=status.HTTP_200_OK)
       
       response.set_cookie(
         key="jwt",
