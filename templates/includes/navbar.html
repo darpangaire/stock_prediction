@@ -2,7 +2,7 @@
   <div class="max-w-7xl mx-auto px-4 flex justify-between items-center h-16">
     <!-- Left: Brand & nav -->
     <div class="flex items-center space-x-6">
-      <a href="#" class="flex items-center gap-2 text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 via-purple-700 to-pink-600 tracking-tight hover:scale-105 transition">
+      <a href="{% url 'home' %}" class="flex items-center gap-2 text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 via-purple-700 to-pink-600 tracking-tight hover:scale-105 transition">
         <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="url(#logo-gradient)"/>
           <defs>
@@ -18,7 +18,7 @@
     </div>
     <!-- Right: User actions -->
     <div class="flex items-center space-x-3">
-      {% if user %}
+      {% if request.user %}
         <a href="#" class="text-gray-700 font-medium hover:text-blue-600 hover:underline transition">Profile</a>
         <a href="{% url 'logout' %}" class="bg-gradient-to-r from-blue-500 to-pink-500 text-white px-3 py-1.5 rounded-full font-semibold shadow hover:scale-105 transition-all">Logout</a>
       {% else %}
@@ -28,3 +28,6 @@
     </div>
   </div>
 </nav>
+
+
+

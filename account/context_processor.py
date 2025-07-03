@@ -1,39 +1,39 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
 import jwt
-from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
-from django.utils import timezone
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework import authentication, exceptions
 
 User = get_user_model()
 
-def get_user_from_jwt(request):
-    access_token = request.COOKIES.get('jwt')
-    refresh_token = request.COOKIES.get('refresh')
-    user = None
+class JWTFromCookieAuthentication(authentication.BaseAuthentication):
+    def authenticate(self, request):        
+        access_token = request.COOKIES.get('jwt')
+        refresh_token = request.COOKIES.get('refresh')
+        user = None
 
-    if access_token:
-        try:
-            payload = jwt.decode(access_token, settings.SECRET_KEY, algorithms=['HS256'])
-            user = User.objects.get(id=payload['user_id'])
-        except jwt.ExpiredSignatureError:
-            # Try refreshing using refresh token
-            if refresh_token:
-                try:
-                    refresh = RefreshToken(refresh_token)
-                    new_access = str(refresh.access_token)
+        if access_token:
+            try:
+                payload = jwt.decode(access_token, settings.SECRET_KEY, algorithms=['HS256'])
+                user = User.objects.get(id=payload['user_id'])
+                return (user, access_token)
+            except jwt.ExpiredSignatureError:
+                # Try refreshing using refresh token
+                if refresh_token:
+                    try:
+                        refresh = RefreshToken(refresh_token)
+                        new_access = str(refresh.access_token)
 
-                    # Update cookie
-                    request._jwt_new_access_token = new_access  # Store it so middleware or response can set cookie
+                        # Store new access to set in response later (middleware/response handler needed)
+                        request._jwt_new_access_token = new_access
 
-                    payload = jwt.decode(new_access, settings.SECRET_KEY, algorithms=['HS256'])
-                    user = User.objects.get(id=payload['user_id'])
-
-                except Exception as e:
-                    # Refresh token is also invalid or expired
-                    user = None
-            else:
-                user = None
-        except (jwt.DecodeError, User.DoesNotExist):
-            user = None
-
-    return {"user": user}
+                        payload = jwt.decode(new_access, settings.SECRET_KEY, algorithms=['HS256'])
+                        user = User.objects.get(id=payload['user_id'])
+                        return (user, new_access)
+                    except Exception:
+                        raise exceptions.AuthenticationFailed('Refresh token is invalid or expired')
+                else:
+                    raise exceptions.AuthenticationFailed('Access token expired and no refresh token')
+            except (jwt.DecodeError, User.DoesNotExist):
+                raise exceptions.AuthenticationFailed('Invalid token or user not found')
+        return None

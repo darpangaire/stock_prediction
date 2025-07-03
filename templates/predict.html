@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+<div class="bg-gray-50 min-h-screen flex flex-col items-center py-10">
+
+    <!-- Input Form Box -->
+    <div class="bg-white shadow-lg rounded-xl px-8 py-6 w-full max-w-md mb-8">
+        <h1 class="text-2xl font-bold mb-4 text-gray-800 text-center">Stock Price Predictor</h1>
+        <form id="predictForm" class="flex flex-col gap-4">
+            <div>
+                <label for="ticker" class="block text-gray-700 font-semibold mb-1">Stock Ticker</label>
+                <input type="text" id="ticker" name="ticker" required placeholder="e.g. AAPL" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-400 outline-none" />
+            </div>
+            <div>
+                <label for="days" class="block text-gray-700 font-semibold mb-1">Number of Days to Predict</label>
+                <input type="number" id="days" name="days" min="1" max="30" value="1" required class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-400 outline-none" />
+            </div>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded transition">Predict</button>
+        </form>
+    </div>
+
+    <!-- Prediction Box -->
+    <div id="predictionBox" class="hidden bg-white shadow-lg rounded-xl px-8 py-6 w-full max-w-2xl">
+        <h2 class="text-xl font-bold mb-4 text-gray-700">Prediction Results</h2>
+        <div id="stockInfo" class="mb-6">
+            <!-- Stock details (Open, High, Low, Close, Volume) will be rendered here -->
+        </div>
+        <div class="grid gap-4 grid-cols-1 md:grid-cols-2">
+            <div>
+                <h3 class="font-semibold text-gray-600 mb-1">Actual Prices</h3>
+                <ul id="actualPrices" class="list-decimal ml-5 text-sm text-gray-700"></ul>
+            </div>
+            <div>
+                <h3 class="font-semibold text-gray-600 mb-1">Predicted Prices</h3>
+                <ul id="predictedPrices" class="list-decimal ml-5 text-sm text-blue-700"></ul>
+            </div>
+        </div>
+        <div class="mt-6">
+            <h3 class="font-semibold text-gray-600 mb-2">Prediction Metrics</h3>
+            <div id="metrics" class="flex flex-wrap gap-4 text-sm">
+                <!-- Metrics like MSE, RMSE, R2 rendered here -->
+            </div>
+        </div>
+        <div class="mt-6 flex flex-col md:flex-row gap-4">
+            <img id="historyPlot" src="" alt="Price History" class="rounded shadow w-full md:w-1/2">
+            <img id="predPlot" src="" alt="Predicted vs True" class="rounded shadow w-full md:w-1/2">
+        </div>
+    </div>
+
+    <!-- Error Alert -->
+    <div id="errorAlert" class="hidden mt-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded w-full max-w-md"></div>
+
+    <script>
+// NO NEED to manually get or send JWT tokens in JS if using HttpOnly cookies!
+// Just send your request. The browser will include cookies automatically.
+// If using CSRF protection, include the CSRF token as shown (recommended for Django).
+
+// Utility to get CSRF token from cookie
+
+// Utility to get CSRF token from cookie
+// function getCookie(name) {
+//     let cookieValue = null;
+//     if (document.cookie && document.cookie !== "") {
+//         const cookies = document.cookie.split(";");
+//         for (let i = 0; i < cookies.length; i++) {
+//             const cookie = cookies[i].trim();
+//             if (cookie.substring(0, name.length + 1) === (name + "=")) {
+//                 cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+//                 break;
+//             }
+//         }
+//     }
+//     return cookieValue;
+// }
+
+document.getElementById('predictForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    document.getElementById('predictionBox').classList.add('hidden');
+    document.getElementById('errorAlert').classList.add('hidden');
+    // Get form values
+    const ticker = document.getElementById('ticker').value.trim();
+    const days = parseInt(document.getElementById('days').value, 10);
+
+    // Get CSRF token from cookie
+    const csrfToken = getCookie('csrftoken');
+
+    try {
+        const response = await fetch('/predict/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken  // Add CSRF token for Django protection
+            },
+            body: JSON.stringify({ ticker: ticker, number_of_days: days }),
+            credentials: 'same-origin' // Ensure cookie is sent (default for same-origin, explicit for clarity)
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Prediction failed!");
+
+        document.getElementById('stockInfo').innerHTML = `
+            <div class="flex flex-wrap gap-4 mb-2">
+                <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold">Ticker: ${ticker.toUpperCase()}</span>
+                <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs font-semibold">Predicted Days: ${days}</span>
+            </div>
+        `;
+
+        const actualPrices = (data.actual_prices || []).slice(0, days);
+        const predictedPrices = (Array.isArray(data.next_day_price) ? data.next_day_price : [data.next_day_price]).slice(0, days);
+
+        document.getElementById('actualPrices').innerHTML =
+            actualPrices.length
+                ? actualPrices.map((p, i) => `<li>Day ${i + 1}: $${Number(p).toFixed(2)}</li>`).join('')
+                : `<li>N/A</li>`;
+
+        document.getElementById('predictedPrices').innerHTML =
+            predictedPrices.length
+                ? predictedPrices.map((p, i) => `<li>Day ${i + 1}: $${Number(p).toFixed(2)}</li>`).join('')
+                : `<li>N/A</li>`;
+
+        document.getElementById('metrics').innerHTML = `
+            <span class="bg-green-100 text-green-800 px-2 py-1 rounded font-semibold">MSE: ${data.metrics?.mse?.toFixed(3) ?? 'N/A'}</span>
+            <span class="bg-green-100 text-green-800 px-2 py-1 rounded font-semibold">RMSE: ${data.metrics?.rmse?.toFixed(3) ?? 'N/A'}</span>
+            <span class="bg-green-100 text-green-800 px-2 py-1 rounded font-semibold">R²: ${data.metrics?.r2?.toFixed(3) ?? 'N/A'}</span>
+        `;
+
+        document.getElementById('historyPlot').src = data.plot_history_path || '';
+        document.getElementById('predPlot').src = data.plot_pred_path || '';
+
+        document.getElementById('predictionBox').classList.remove('hidden');
+    } catch (err) {
+        document.getElementById('errorAlert').textContent = err.message;
+        document.getElementById('errorAlert').classList.remove('hidden');
+    }
+});
+
+    </script
+    </div>
+
+
+{% endblock content %}
+
+
