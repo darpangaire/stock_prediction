@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'api',
+
     
     
 ]
@@ -197,4 +198,6 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_REFRESH_SERIALIZER": "rest_framework_simplejwt.serializers.TokenRefreshSlidingSerializer",
 }
 
-
+from decouple import config
+STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY")
+ 

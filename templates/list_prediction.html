@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+<div class="bg-gray-50 min-h-screen flex flex-col items-center py-10">
+
+    <div class="bg-white shadow-lg rounded-xl px-8 py-6 w-full max-w-3xl">
+        <h1 class="text-2xl font-bold mb-6 text-gray-800 text-center">Your Stock Predictions</h1>
+        
+        {% if stocks and stocks|length > 0 %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full table-auto text-sm text-left">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="px-4 py-2">#</th>
+                            <th class="px-4 py-2">Ticker</th>
+                            <th class="px-4 py-2">Predicted Days</th>
+                            <th class="px-4 py-2">Prediction Date</th>
+                            <th class="px-4 py-2">Actual Prices</th>
+                            <th class="px-4 py-2">Predicted Prices</th>
+                            <th class="px-4 py-2">MSE</th>
+                            <th class="px-4 py-2">RMSE</th>
+                            <th class="px-4 py-2">R²</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stock in stocks %}
+                        <tr class="{% cycle 'bg-white' 'bg-gray-50' %}">
+                            <td class="px-4 py-2">{{ forloop.counter }}</td>
+                            <td class="px-4 py-2 font-bold text-blue-700">{{ stock.ticker|upper }}</td>
+                            <td class="px-4 py-2">{{ stock.days }}</td>
+                            <td class="px-4 py-2">{{ stock.prediction_date|date:"Y-m-d H:i" }}</td>
+                            <td class="px-4 py-2">
+                                {% if stock.actual_prices %}
+                                    {{ stock.actual_prices|join:", " }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-2">
+                                {% if stock.predicted_prices %}
+                                    {{ stock.predicted_prices|join:", " }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-2">{{ stock.mse|default:"N/A"|floatformat:3 }}</td>
+                            <td class="px-4 py-2">{{ stock.rmse|default:"N/A"|floatformat:3 }}</td>
+                            <td class="px-4 py-2">{{ stock.r2|default:"N/A"|floatformat:3 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            <div class="flex justify-center mt-6">
+                <nav class="inline-flex rounded-md shadow-sm">
+                    {% if stocks.has_previous %}
+                        <a href="?page={{ stocks.previous_page_number }}" class="px-3 py-1 rounded-l bg-blue-100 hover:bg-blue-200 text-blue-800">Previous</a>
+                    {% else %}
+                        <span class="px-3 py-1 rounded-l bg-gray-200 text-gray-400 cursor-not-allowed">Previous</span>
+                    {% endif %}
+                    <span class="px-3 py-1 bg-white border-t border-b border-gray-300">{{ stocks.number }} / {{ stocks.paginator.num_pages }}</span>
+                    {% if stocks.has_next %}
+                        <a href="?page={{ stocks.next_page_number }}" class="px-3 py-1 rounded-r bg-blue-100 hover:bg-blue-200 text-blue-800">Next</a>
+                    {% else %}
+                        <span class="px-3 py-1 rounded-r bg-gray-200 text-gray-400 cursor-not-allowed">Next</span>
+                    {% endif %}
+                </nav>
+            </div>
+        {% else %}
+            <div class="text-center text-gray-500 py-10">
+                <p>No predictions found.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock content %}

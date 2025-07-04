@@ -20,6 +20,7 @@ from .models import Prediction
 from .serializers import PredictionSerializers
 from .utils import run_prediction
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 
 # Create your views here.
 @api_view(['POST'])
@@ -53,6 +54,13 @@ def predict_api(request):
         import traceback
         traceback.print_exc()
         return Response({"error": str(e)}, status=500)
+    
+from django.views.decorators.http import require_GET
+
+@require_GET
+def health_check(request):
+    return JsonResponse({"status": "ok"})
+
   
   
 @api_view(['GET'])
@@ -204,6 +212,7 @@ def predict(request):
             predicted_prices,actual_prices, metrics, plot_history_path, plot_pred_path = run_prediction(ticker, n_days)
             # You may also want to return actual prices for the frontend
             # If you want to, add that return value to run_prediction and here
+            predicted_prices = predicted_prices[0]
             prediction = Prediction.objects.create(
                 user=request.user,
                 ticker=ticker,
@@ -225,6 +234,23 @@ def predict(request):
     return render(request, 'predict.html')
 
 
-
+# def list_prediction(request):
+#     try:
+#         stocks = Prediction.objects.filter(user=request.user)
+#         paginator = Paginator(stocks,4)
+#         page = request.GET.get('page')
+#         paged_stocks = paginator.get_page(page)
+        
+#         context = {
+#             'stocks':paged_stocks
+#         }
+        
+#     except:
+#         stocks = None
+        
+#         context = {
+#             'stocks':stocks
+#         }
+#     return render(request,'list_prediction.html',context)
 
 
