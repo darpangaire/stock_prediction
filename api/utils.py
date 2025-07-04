@@ -94,5 +94,6 @@ def run_prediction(ticker, n_days=1):
     plt.close()
 
     metrics = {"mse": mse, "rmse": rmse, "r2": r2}
+    actual_prices = [float(p) for p in close_prices[-n_days:]]
 
-    return predicted_prices, metrics, plot_history_path, plot_pred_path
+    return predicted_prices,actual_prices, metrics, plot_history_path, plot_pred_path

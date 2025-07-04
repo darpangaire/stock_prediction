@@ -23,9 +23,7 @@
     <!-- Prediction Box -->
     <div id="predictionBox" class="hidden bg-white shadow-lg rounded-xl px-8 py-6 w-full max-w-2xl">
         <h2 class="text-xl font-bold mb-4 text-gray-700">Prediction Results</h2>
-        <div id="stockInfo" class="mb-6">
-            <!-- Stock details (Open, High, Low, Close, Volume) will be rendered here -->
-        </div>
+        <div id="stockInfo" class="mb-6"></div>
         <div class="grid gap-4 grid-cols-1 md:grid-cols-2">
             <div>
                 <h3 class="font-semibold text-gray-600 mb-1">Actual Prices</h3>
@@ -38,13 +36,15 @@
         </div>
         <div class="mt-6">
             <h3 class="font-semibold text-gray-600 mb-2">Prediction Metrics</h3>
-            <div id="metrics" class="flex flex-wrap gap-4 text-sm">
-                <!-- Metrics like MSE, RMSE, R2 rendered here -->
-            </div>
+            <div id="metrics" class="flex flex-wrap gap-4 text-sm"></div>
         </div>
         <div class="mt-6 flex flex-col md:flex-row gap-4">
-            <img id="historyPlot" src="" alt="Price History" class="rounded shadow w-full md:w-1/2">
-            <img id="predPlot" src="" alt="Predicted vs True" class="rounded shadow w-full md:w-1/2">
+            <a id="historyPlotLink" href="" target="_blank" rel="noopener">
+                <img id="historyPlot" src="" alt="Price History" class="rounded shadow w-full md:w-1/2">
+            </a>
+            <a id="predPlotLink" href="" target="_blank" rel="noopener">
+                <img id="predPlot" src="" alt="Predicted vs True" class="rounded shadow w-full md:w-1/2">
+            </a>
         </div>
     </div>
 
@@ -52,93 +52,82 @@
     <div id="errorAlert" class="hidden mt-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded w-full max-w-md"></div>
 
     <script>
-// NO NEED to manually get or send JWT tokens in JS if using HttpOnly cookies!
-// Just send your request. The browser will include cookies automatically.
-// If using CSRF protection, include the CSRF token as shown (recommended for Django).
-
-// Utility to get CSRF token from cookie
-
-// Utility to get CSRF token from cookie
-// function getCookie(name) {
-//     let cookieValue = null;
-//     if (document.cookie && document.cookie !== "") {
-//         const cookies = document.cookie.split(";");
-//         for (let i = 0; i < cookies.length; i++) {
-//             const cookie = cookies[i].trim();
-//             if (cookie.substring(0, name.length + 1) === (name + "=")) {
-//                 cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-//                 break;
-//             }
-//         }
-//     }
-//     return cookieValue;
-// }
-
-document.getElementById('predictForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    document.getElementById('predictionBox').classList.add('hidden');
-    document.getElementById('errorAlert').classList.add('hidden');
-    // Get form values
-    const ticker = document.getElementById('ticker').value.trim();
-    const days = parseInt(document.getElementById('days').value, 10);
-
-    // Get CSRF token from cookie
-    const csrfToken = getCookie('csrftoken');
-
-    try {
-        const response = await fetch('/predict/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  // Add CSRF token for Django protection
-            },
-            body: JSON.stringify({ ticker: ticker, number_of_days: days }),
-            credentials: 'same-origin' // Ensure cookie is sent (default for same-origin, explicit for clarity)
-        });
-
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Prediction failed!");
-
-        document.getElementById('stockInfo').innerHTML = `
-            <div class="flex flex-wrap gap-4 mb-2">
-                <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold">Ticker: ${ticker.toUpperCase()}</span>
-                <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs font-semibold">Predicted Days: ${days}</span>
-            </div>
-        `;
-
-        const actualPrices = (data.actual_prices || []).slice(0, days);
-        const predictedPrices = (Array.isArray(data.next_day_price) ? data.next_day_price : [data.next_day_price]).slice(0, days);
-
-        document.getElementById('actualPrices').innerHTML =
-            actualPrices.length
-                ? actualPrices.map((p, i) => `<li>Day ${i + 1}: $${Number(p).toFixed(2)}</li>`).join('')
-                : `<li>N/A</li>`;
-
-        document.getElementById('predictedPrices').innerHTML =
-            predictedPrices.length
-                ? predictedPrices.map((p, i) => `<li>Day ${i + 1}: $${Number(p).toFixed(2)}</li>`).join('')
-                : `<li>N/A</li>`;
-
-        document.getElementById('metrics').innerHTML = `
-            <span class="bg-green-100 text-green-800 px-2 py-1 rounded font-semibold">MSE: ${data.metrics?.mse?.toFixed(3) ?? 'N/A'}</span>
-            <span class="bg-green-100 text-green-800 px-2 py-1 rounded font-semibold">RMSE: ${data.metrics?.rmse?.toFixed(3) ?? 'N/A'}</span>
-            <span class="bg-green-100 text-green-800 px-2 py-1 rounded font-semibold">R²: ${data.metrics?.r2?.toFixed(3) ?? 'N/A'}</span>
-        `;
-
-        document.getElementById('historyPlot').src = data.plot_history_path || '';
-        document.getElementById('predPlot').src = data.plot_pred_path || '';
-
-        document.getElementById('predictionBox').classList.remove('hidden');
-    } catch (err) {
-        document.getElementById('errorAlert').textContent = err.message;
-        document.getElementById('errorAlert').classList.remove('hidden');
+    // CSRF token getter for Django
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== "") {
+            const cookies = document.cookie.split(";");
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + "=")) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
     }
-});
 
-    </script
-    </div>
+    document.getElementById('predictForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        document.getElementById('predictionBox').classList.add('hidden');
+        document.getElementById('errorAlert').classList.add('hidden');
 
+        const ticker = document.getElementById('ticker').value.trim();
+        const days = parseInt(document.getElementById('days').value, 10);
+        const csrfToken = getCookie('csrftoken');
 
+        try {
+            const response = await fetch("{% url 'predict' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify({ ticker: ticker, days: days }),
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || "Prediction failed!");
+
+            document.getElementById('stockInfo').innerHTML = `
+                <div class="flex flex-wrap gap-4 mb-2">
+                    <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold">Ticker: ${ticker.toUpperCase()}</span>
+                    <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs font-semibold">Predicted Days: ${days}</span>
+                </div>
+            `;
+
+            const actualPrices = (data.actual_prices || []);
+            const predictedPrices = (Array.isArray(data.predicted_prices) ? data.predicted_prices : [data.predicted_prices]).slice(0, days);
+
+            document.getElementById('actualPrices').innerHTML =
+                actualPrices.length
+                    ? actualPrices.map((p, i) => `<li>Day ${i + 1}: $${Number(p).toFixed(2)}</li>`).join('')
+                    : `<li>N/A (future prices not available)</li>`;
+
+            document.getElementById('predictedPrices').innerHTML =
+                predictedPrices.length
+                    ? predictedPrices.map((p, i) => `<li>Day ${i + 1}: $${Number(p).toFixed(2)}</li>`).join('')
+                    : `<li>N/A</li>`;
+
+            document.getElementById('metrics').innerHTML = `
+                <span class="bg-green-100 text-green-800 px-2 py-1 rounded font-semibold">MSE: ${data.metrics?.mse?.toFixed(3) ?? 'N/A'}</span>
+                <span class="bg-green-100 text-green-800 px-2 py-1 rounded font-semibold">RMSE: ${data.metrics?.rmse?.toFixed(3) ?? 'N/A'}</span>
+                <span class="bg-green-100 text-green-800 px-2 py-1 rounded font-semibold">R²: ${data.metrics?.r2?.toFixed(3) ?? 'N/A'}</span>
+            `;
+
+            document.getElementById('historyPlot').src = data.plot_history_path || '';
+            document.getElementById('historyPlotLink').href = data.plot_history_path || '';
+            document.getElementById('predPlot').src = data.plot_pred_path || '';
+            document.getElementById('predPlotLink').href = data.plot_pred_path || '';
+
+            document.getElementById('predictionBox').classList.remove('hidden');
+        } catch (err) {
+            document.getElementById('errorAlert').textContent = err.message;
+            document.getElementById('errorAlert').classList.remove('hidden');
+        }
+    });
+    </script>
+</div>
 {% endblock content %}
-
 
