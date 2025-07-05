@@ -15,7 +15,7 @@ import os
 from datetime import timedelta
 from dotenv import load_dotenv
 import environ
-load_dotenv()
+load_dotenv('.env')
 
 env = environ.Env()
 environ.Env.read_env()
@@ -29,13 +29,13 @@ MODEL_PATH = env("MODEL_PATH",default="stock_prediction_model.keras")
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-j0eb0*lqfj*14ouwktcm$t5h6lv2!zbd7ad7(58qdy!^5ic3bm'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = bool(os.getenv("DEBUG",default=0))
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS","127.0.0.1").split(",")
+CSRF_TRUSTED_ORIGINS = os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS","https://127.0.0.1").split(",")
 
 # Application definition
 
