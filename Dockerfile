@@ -1,47 +1,61 @@
 # ---------- Stage 1: Build dependencies ----------
-FROM python:3.13-slim AS builder
+FROM python:3.10-slim AS builder
 
-# Create app directory
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    gcc \
+    libffi-dev \
+    libssl-dev \
+    python3-dev \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
-# Prevent Python from writing .pyc files and enable unbuffered logs
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+# Copy only requirements for caching
+COPY requirements.txt .
 
 # Upgrade pip
-RUN pip install --upgrade pip
+RUN python -m pip install --upgrade pip
 
-# Copy requirements first (to use caching)
-COPY requirements.txt /app/
-
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies to a separate prefix
+RUN pip install --prefix=/install -r requirements.txt
 
 # ---------- Stage 2: Final production image ----------
-FROM python:3.13-slim
+FROM python:3.10-slim
 
-# Create user and app directory
-RUN useradd -m -r appuser && mkdir /app && chown -R appuser /app
+# Copy installed dependencies from builder stage
+COPY --from=builder /install /usr/local
 
-# Set workdir
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -m -r appuser
+
 WORKDIR /app
 
-# Copy dependencies from builder
-COPY --from=builder /usr/local/lib/python3.13/site-packages/ /usr/local/lib/python3.13/site-packages/
-COPY --from=builder /usr/local/bin/ /usr/local/bin/
+# Copy project source code
+COPY . .
 
-# Copy entire project
-COPY --chown=appuser:appuser . .
+# Make entrypoint script executable
+RUN chmod +x /app/entrypoint.prod.sh
 
-# Environment settings
+# Change ownership to non-root user
+RUN chown -R appuser:appuser /app
+
+# Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-
-# Expose port
-EXPOSE 8000
 
 # Switch to non-root user
 USER appuser
 
-# Run entrypoint script
+# Expose the app port
+EXPOSE 8000
+
+# Use the entrypoint script to start container
 ENTRYPOINT ["/app/entrypoint.prod.sh"]

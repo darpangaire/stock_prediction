@@ -35,7 +35,7 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 DEBUG = bool(os.getenv("DEBUG",default=0))
 
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS","127.0.0.1").split(",")
-CSRF_TRUSTED_ORIGINS = os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS","https://127.0.0.1").split(",")
+CSRF_TRUSTED_ORIGINS = os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS","http://127.0.0.1").split(",")
 
 # Application definition
 
@@ -145,7 +145,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR,'static_cdn')
+STATIC_ROOT = os.path.join(BASE_DIR,'staticfiles')
 STATICFILES_DIRS = [os.path.join(BASE_DIR,'static')]
 
 MEDIA_URL = 'media/'

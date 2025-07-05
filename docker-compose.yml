@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+  django-web:
+    build: .
+    container_name: django-docker
+    volumes:
+      - ./static:/app/staticfiles
+    env_file:
+      - .env
+    command: python manage.py runserver 0.0.0.0:8000
+
+  telegram-bot:
+    build: .
+    container_name: django-telegram-bot
+    volumes:
+      - ./static:/app/staticfiles
+    env_file:
+      - .env
+    command: python manage.py telegrambot
+
+  frontend-proxy:
+    image: nginx:latest
+    ports:
+      - "8000:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./static:/static:ro
+    depends_on:
+      - django-web
+
+volumes:
+  postgres_data:
