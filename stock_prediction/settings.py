@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'api',
+    'payment',
 
     
     
@@ -201,3 +202,5 @@ SIMPLE_JWT = {
 from decouple import config
 STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY")
  
+STRIPE_PUBLIC_KEY = config("STRIPE_PUBLIC_KEY")
+

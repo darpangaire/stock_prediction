@@ -1,18 +1,18 @@
 import os
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from django.core.management.base import BaseCommand
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from asgiref.sync import sync_to_async
 
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from django.core.exceptions import ObjectDoesNotExist
 
 from api.models import TelegramUser, Prediction
 from api.utils import run_prediction
-from django.contrib.auth import get_user_model
-from django.shortcuts import get_object_or_404
+from payment.models import UserProfile
 
 User = get_user_model()
 
@@ -20,62 +20,85 @@ User = get_user_model()
 logger = logging.getLogger("telegrambot")
 logging.basicConfig(level=logging.INFO)
 
-# Rate limit store (in-memory)
-user_rate_limits = {}
 
-PREDICTION_LIMIT_PER_MIN = 10
-
-
-def is_rate_limited(user_id):
-    now = datetime.utcnow()
-    if user_id not in user_rate_limits:
-        user_rate_limits[user_id] = []
-    user_rate_limits[user_id] = [t for t in user_rate_limits[user_id] if now - t < timedelta(minutes=1)]
-    if len(user_rate_limits[user_id]) >= PREDICTION_LIMIT_PER_MIN:
-        return True
-    user_rate_limits[user_id].append(now)
-    return False
+async def get_linked_user(chat_id):
+    try:
+        tg_user = await sync_to_async(TelegramUser.objects.select_related("user").get)(chat_id=chat_id)
+        return tg_user.user, tg_user
+    except TelegramUser.DoesNotExist:
+        return None, None
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    telegram_user = update.effective_user
     chat_id = update.effective_chat.id
 
-    # Create or get Django user (wrapped in sync_to_async)
-    django_user, created = await sync_to_async(User.objects.get_or_create)(
-        username=f"tg_{telegram_user.id}",
-        defaults={
-            "first_name": telegram_user.first_name or "",
-            "last_name": telegram_user.last_name or ""
-        }
-    )
+    args = context.args
+    if len(args) < 2:
+        await update.message.reply_text(
+            "Please provide your email and password:\n/start your_email@example.com your_password"
+        )
+        return
 
-    # Create or get TelegramUser (also wrapped)  # adjust import if needed
-    await sync_to_async(TelegramUser.objects.get_or_create)(
-        user=django_user,
-        defaults={"chat_id": chat_id}
-    )
+    email = args[0]
+    password = args[1]
 
-    await update.message.reply_text(
-        " Welcome! to our stock prediction bot\n"
-        "You are able to use /predict tickername and /latest."
-    )
+    try:
+        user = await sync_to_async(User.objects.get)(email=email)
+        is_valid = await sync_to_async(user.check_password)(password)
+        if not is_valid:
+            await update.message.reply_text("❌ Incorrect password. Please try again.")
+            return
 
+        # Check if TelegramUser already exists for this user
+        try:
+            telegram_user_obj = await sync_to_async(TelegramUser.objects.get)(user=user)
+            if telegram_user_obj.chat_id != chat_id:
+                telegram_user_obj.chat_id = chat_id
+                await sync_to_async(telegram_user_obj.save)()
+        except TelegramUser.DoesNotExist:
+            try:
+                existing_by_chat = await sync_to_async(TelegramUser.objects.get)(chat_id=chat_id)
+                existing_by_chat.user = user
+                await sync_to_async(existing_by_chat.save)()
+            except TelegramUser.DoesNotExist:
+                await sync_to_async(TelegramUser.objects.create)(
+                    user=user,
+                    chat_id=chat_id
+                )
+
+        await update.message.reply_text(
+            "✅ Your account is successfully linked to this Telegram chat!\n"
+            "You can now use /predict and /latest."
+        )
+
+    except ObjectDoesNotExist:
+        await update.message.reply_text("❌ No account found with that email. Please register first.")
 
 
 async def predict(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
 
-    try:
-        tg_user = await sync_to_async(TelegramUser.objects.get)(chat_id=chat_id)
-        user = await sync_to_async(lambda: tg_user.user)()
-        user_id = user.id
-    except TelegramUser.DoesNotExist:
-        await update.message.reply_text("❌ You need to link your account first on the web. Use /start for info.")
+    user, tg_user = await get_linked_user(chat_id)
+    if not user:
+        await update.message.reply_text("❌ You need to link your account first. Use /start <email> <password>.")
         return
 
-    if is_rate_limited(user_id):
-        await update.message.reply_text("⚠️ Rate limit exceeded (10 predictions per minute). Please wait.")
+    # Get UserProfile
+    try:
+        profile = await sync_to_async(UserProfile.objects.get)(user=tg_user)
+    except UserProfile.DoesNotExist:
+        # If profile doesn't exist, create it
+        profile = await sync_to_async(UserProfile.objects.create)(user=tg_user)
+
+    # Reset count if new day
+    await sync_to_async(profile.reset_count_if_new_day)()
+
+    # Check limit for non-pro users
+    if not profile.is_pro and profile.daily_prediction_count >= 5:
+        await update.message.reply_text(
+            "⚠️ You have used your 5 free predictions for today.\n"
+            "Upgrade to Pro to get unlimited predictions! 💎"
+        )
         return
 
     if len(context.args) != 1:
@@ -93,10 +116,7 @@ async def predict(update: Update, context: ContextTypes.DEFAULT_TYPE):
         rmse = metrics.get("rmse", None)
         r2 = metrics.get("r2", None)
 
-        if next_day_price is not None:
-            price_str = f"{next_day_price:.2f}"
-        else:
-            price_str = "N/A"
+        price_str = f"{next_day_price:.2f}" if next_day_price is not None else "N/A"
 
         msg = (
             f"📈 Prediction for {ticker}\n\n"
@@ -120,16 +140,20 @@ async def predict(update: Update, context: ContextTypes.DEFAULT_TYPE):
             telegramuser=tg_user
         )
 
+        # Increment daily_prediction_count
+        profile.daily_prediction_count += 1
+        await sync_to_async(profile.save)()
+
         # Send plot images
         with open(plot_history_path, "rb") as hist_img:
             await update.message.reply_photo(hist_img)
         with open(plot_pred_path, "rb") as pred_img:
             await update.message.reply_photo(pred_img)
 
-        logger.info(f"✅ Prediction sent to user_id={user_id}, ticker={ticker}")
+        logger.info(f"✅ Prediction sent to user_id={user.id}, ticker={ticker}")
 
     except Exception as e:
-        logger.exception(f"❌ Prediction error for user_id={user_id}, ticker={ticker}: {str(e)}")
+        logger.exception(f"❌ Prediction error for user_id={user.id}, ticker={ticker}: {str(e)}")
         try:
             await update.message.reply_text(f"⚠️ Error during prediction: {str(e)}")
         except Exception as e2:
@@ -139,14 +163,11 @@ async def predict(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def latest(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
 
-    try:
-        tg_user = await sync_to_async(TelegramUser.objects.select_related("user").get)(chat_id=chat_id)
-        user = tg_user.user
-    except TelegramUser.DoesNotExist:
-        await update.message.reply_text("❌ You need to link your account first on the web. Use /start for info.")
+    user, tg_user = await get_linked_user(chat_id)
+    if not user:
+        await update.message.reply_text("❌ You need to link your account first. Use /start <email> <password>.")
         return
 
-    # Get latest prediction for this user
     latest_pred = await sync_to_async(
         lambda: Prediction.objects.filter(user=user).order_by("-created_at").first()
     )()
@@ -155,7 +176,6 @@ async def latest(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ No predictions found. Use /predict <TICKER> to get started.")
         return
 
-    # Use the next_day_price field directly
     price = latest_pred.next_day_price if latest_pred.next_day_price is not None else "N/A"
 
     msg = (
@@ -165,7 +185,6 @@ async def latest(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await update.message.reply_text(msg)
 
-    # Send plots if available
     try:
         if latest_pred.plot_history_path and latest_pred.plot_pred_path:
             with open(latest_pred.plot_history_path, "rb") as hist_img:
@@ -179,7 +198,8 @@ async def latest(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Available commands:\n"
-        "/start — Link your Telegram account\n"
+        "Login From Web\n"
+        "/start <email> <password> — Link your Telegram account\n"
         "/predict <TICKER> — Predict next-day price\n"
         "/latest — Show your latest prediction\n"
         "/help — Show this help message"
@@ -202,6 +222,6 @@ class Command(BaseCommand):
         app.add_handler(CommandHandler("predict", predict))
         app.add_handler(CommandHandler("latest", latest))
 
-        logger.info(" Telegram bot started using long polling...")
+        logger.info("Telegram bot started using long polling...")
 
         app.run_polling()

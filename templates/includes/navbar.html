@@ -16,12 +16,12 @@
       </a>
       <a href="{% url 'predict' %}" class="text-gray-700 font-medium hover:text-blue-600 hover:underline transition">Predict</a>
 
-      <a href="#" class="text-gray-700 font-medium hover:text-blue-600 hover:underline transition">All Tickers</a>
+      <a href="https://t.me/ecomdo_bot" class="text-gray-700 font-medium hover:text-blue-600 hover:underline transition">Telegram Link</a>
     </div>
     <!-- Right: User actions -->
     <div class="flex items-center space-x-3">
       {% if request.user %}
-        <a href="#" class="text-gray-700 font-medium hover:text-blue-600 hover:underline transition">Profile</a>
+        <a href="{% url 'profile' %}" class="text-gray-700 font-medium hover:text-blue-600 hover:underline transition">Profile</a>
         <a href="{% url 'logout' %}" class="bg-gradient-to-r from-blue-500 to-pink-500 text-white px-3 py-1.5 rounded-full font-semibold shadow hover:scale-105 transition-all">Logout</a>
       {% else %}
         <a href="{% url 'login' %}" class="text-gray-700 font-medium hover:text-blue-600 hover:underline transition">Login</a>

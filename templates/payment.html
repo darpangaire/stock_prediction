@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+<div class="bg-gray-50 text-gray-800">
+
+  <!-- Header -->
+  <header class="bg-white shadow p-6">
+    <h1 class="text-2xl font-bold">Welcome to StockPro</h1>
+    <p class="text-gray-500">Manage your predictions and upgrade to Pro</p>
+  </header>
+
+  <main class="max-w-3xl mx-auto mt-10 p-6 bg-white rounded-2xl shadow-md">
+
+    {% if not userprofile.is_pro %}
+    <!-- Predictions Remaining -->
+    <div class="mb-8">
+      <h2 class="text-lg font-semibold mb-2">Predictions Remaining Today</h2>
+      <div class="flex items-center justify-between bg-gray-100 rounded-lg p-4">
+
+        <span class="text-xl font-bold text-green-600">{{chance}}</span>
+        <span class="text-gray-500">predictions left today</span>
+      </div>
+      
+      <p class="text-gray-500 mt-2 text-sm">Your free daily limit is 5 predictions. Upgrade to remove limits and unlock lifetime Pro access!</p>
+
+    </div>
+
+    <!-- Upgrade Section -->
+    <div class="border-t pt-6">
+      <h2 class="text-lg font-semibold mb-4">Upgrade to Lifetime Pro</h2>
+      <p class="text-gray-600 mb-4">Unlock unlimited predictions forever with a one-time payment.</p>
+      <form action="{% url 'paymentview' request.user.id %}" method="post">
+        {% csrf_token %}
+        <button 
+          type="submit" 
+          class="w-full bg-indigo-600 text-white font-semibold py-3 rounded-lg hover:bg-indigo-700 transition"
+        >
+          🔥 Upgrade to Lifetime Pro — $60
+        </button>
+      </form>
+      <p class="text-xs text-gray-400 mt-2 text-center">One-time payment. No recurring fees.</p>
+    </div>
+
+    {% else %}
+      <div class="mb-8">
+      <h2 class="text-lg font-semibold mb-2">Predictions Remaining Today</h2>
+      <div class="flex items-center justify-between bg-gray-100 rounded-lg p-4">
+        <span class="text-xl font-bold text-green-600">unlimited</span>
+        <span class="text-gray-500">predictions left today unlimited</span>
+      </div>
+      
+      <p class="text-gray-500 mt-2 text-sm">You Can Predict Unlimited Times.</p>
+
+    </div>
+
+    {% endif %}
+
+  </main>
+
+
+
+</div>
+{% endblock %}
+
+

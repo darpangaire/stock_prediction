@@ -8,7 +8,7 @@ User = get_user_model()
 
 class TelegramUser(models.Model):
   user = models.OneToOneField(User, on_delete=models.CASCADE)
-  chat_id = models.BigIntegerField(unique=True)
+  chat_id = models.BigIntegerField(unique=True, null=True, blank=True)
     
 
 class Prediction(models.Model):

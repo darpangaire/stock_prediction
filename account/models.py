@@ -1,6 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
-
 # Create your models here.
 class CustomUserManager(BaseUserManager):
   def create_user(self,email,username,first_name,last_name,password=None):
@@ -50,6 +49,7 @@ class CustomUser(AbstractBaseUser):
   is_admin = models.BooleanField(default=False)
   is_staff = models.BooleanField(default=False)
   is_superadmin = models.BooleanField(default=False)
+
   
   objects = CustomUserManager()
   

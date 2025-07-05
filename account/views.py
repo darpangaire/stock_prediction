@@ -110,6 +110,10 @@ def logout_view(request):
   return response
 
 
+import uuid
+from django.shortcuts import redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 
 
   

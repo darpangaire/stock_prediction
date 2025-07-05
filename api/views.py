@@ -16,11 +16,12 @@ from django.conf import settings
 from django.utils import timezone
 import json
 
-from .models import Prediction
+from .models import Prediction,TelegramUser
 from .serializers import PredictionSerializers
 from .utils import run_prediction
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from payment.models import UserProfile
 
 # Create your views here.
 @api_view(['POST'])
@@ -191,6 +192,7 @@ def get_recent_stocks_table(tickers):
             print(f"No data for {ticker}: {e}")
     return recent_list
 
+@login_required(login_url='login')
 def home(request):
     dashboard_tickers = ['AAPL', 'AMZN', 'QCOM', 'META', 'NVDA', 'JPM']
     recent_tickers = ['AAPL', 'AMZN', 'GOOGL', 'UBER', 'TSLA']
@@ -202,10 +204,18 @@ def home(request):
         'plot_div_left': plot_div,
         'recent_stocks': recent_stocks
     })
-    
+ 
+@login_required(login_url='login')   
 def predict(request):
     if request.method == 'POST':
         try:
+            user = request.user
+            telegram_user,created = TelegramUser.objects.get_or_create(user = user)
+            userprofile,created = UserProfile.objects.get_or_create(user=telegram_user)
+            userprofile.daily_prediction_count += 1
+            userprofile.save()
+            if userprofile.daily_prediction_count >= 6:
+                return JsonResponse({"message": "Your daily prediction chance has been expired"}, status=400)
             data = json.loads(request.body)
             ticker = data.get('ticker')
             n_days = int(data.get('days', 1))
@@ -222,6 +232,7 @@ def predict(request):
                 plot_history_path=plot_history_path,
                 plot_pred_path=plot_pred_path
             )
+
             return JsonResponse({
                 'predicted_prices': predicted_prices,
                 'actual_prices': actual_prices,  # If you want to show actual future prices, provide them here
