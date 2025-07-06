@@ -192,7 +192,7 @@ def get_recent_stocks_table(tickers):
             print(f"No data for {ticker}: {e}")
     return recent_list
 
-@login_required(login_url='login')
+
 def home(request):
     dashboard_tickers = ['AAPL', 'AMZN', 'QCOM', 'META', 'NVDA', 'JPM']
     recent_tickers = ['AAPL', 'AMZN', 'GOOGL', 'UBER', 'TSLA']
@@ -205,7 +205,7 @@ def home(request):
         'recent_stocks': recent_stocks
     })
  
-@login_required(login_url='login')   
+ 
 def predict(request):
     if request.method == 'POST':
         try:

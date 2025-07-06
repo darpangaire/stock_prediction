@@ -56,25 +56,25 @@ class UserRegistrationSerializers(serializers.ModelSerializer):
     return user
   
 class LoginUserSerializers(serializers.Serializer):
-  email = serializers.EmailField(required=True)
-  password = serializers.CharField(max_length=255,write_only=True,style={'input-type':'password'})
-  
-  def validate(self, attrs):
-    email = attrs.get('email')
-    password = attrs.get('password')
-    if email and password:
-      user = authenticate(request=self.context.get('request'),email=email,password=password)
-      if not user:
-        raise serializers.ValidationError({"error":_("Invalid email or password ")})
-      
-      if not user.is_active:
-        raise serializers.ValidationError({"message":_("Account is not activated")})
-      
-    else:
-      raise serializers.ValidationError({"error":_("Must include both email and password")})
-    
-    attrs['user'] = user
-    return attrs
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(max_length=255, write_only=True, style={'input_type': 'password'})
+
+    def validate(self, attrs):
+        email = attrs.get('email')
+        password = attrs.get('password')
+        request = self.context.get('request')
+
+        if email and password:
+            user = authenticate(request=request, email=email, password=password)
+            if not user:
+                raise serializers.ValidationError({"error": "Invalid email or password"})
+            if not user.is_active:
+                raise serializers.ValidationError({"error": "Account is not activated"})
+        else:
+            raise serializers.ValidationError({"error": "Must include both email and password"})
+
+        attrs['user'] = user
+        return attrs
   
 
     

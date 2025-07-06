@@ -57,6 +57,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # 'account.middleware.JWTAuthMiddleware',       
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -64,7 +65,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'account.middleware.RefreshAccessTokenMiddleware',
+
 ]
 
 ROOT_URLCONF = 'stock_prediction.urls'
@@ -165,8 +166,9 @@ REST_FRAMEWORK = {
 
     'DEFAULT_AUTHENTICATION_CLASSES': (
 
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'account.context_processor.JWTFromCookieAuthentication',
+        # 'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # 'account.context_processor.JWTFromCookieAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     )
 
 }

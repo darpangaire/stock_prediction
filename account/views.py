@@ -4,6 +4,7 @@ from .serializers import UserRegistrationSerializers,LoginUserSerializers
 from rest_framework.response import Response
 from rest_framework import status
 from.utils import send_verification_email
+from django.contrib.auth import authenticate, login
 
 from django.utils.http import urlsafe_base64_decode
 from django.contrib.auth.tokens import default_token_generator
@@ -49,30 +50,19 @@ class UserRegistrationView(APIView):
   
 # Create a View to Handle Verification Link
 
- 
+
+  # Assuming you have this helper
+
 class UserLoginView(APIView):
-  def post(self,request,format=None):
-    serializers = LoginUserSerializers(data = request.data, context={'request': request})
-    if serializers.is_valid():
-      user = serializers.validated_data['user']
-      token = get_tokens_for_user(user)
-      
-      
-      response =  Response({"msg":"Login Successfull","refresh":token['refresh'],"access":token['access']},status=status.HTTP_200_OK)
-      
-      response.set_cookie(
-        key="jwt",
-        value=token['access'],
-        httponly=True,
-        secure= not settings.DEBUG,
-        samesite='lax',
-        max_age=3600000
-      )
-      
-      return response
-      
-    else:
-      return Response(serializers.errors,status=status.HTTP_400_BAD_REQUEST)
+    def post(self, request, format=None):
+        serializer = LoginUserSerializers(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            user = serializer.validated_data['user']
+            login(request, user)  # <- This sets session and request.user!
+
+            return Response({"msg": "Login Successful"}, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     
 def register_view(request):
@@ -108,12 +98,6 @@ def logout_view(request):
   response = redirect('login')
   response.delete_cookie('jwt')
   return response
-
-
-import uuid
-from django.shortcuts import redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
 
 
   
