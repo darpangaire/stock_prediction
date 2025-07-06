@@ -1,78 +1,74 @@
-🚀 Stock Prediction Platform
-This is a Django-based stock prediction web application integrated with a Telegram bot. It offers both free and Pro (paid) plans using Stripe, with Docker support for easy deployment.
+# 🚀 Stock Prediction Platform
 
-✨ Features
-📝 User Registration & Email Verification
-Register on the website with your email and password.
+1.COMMAND:
+--> python manage.py runserver
+---> python manage.py telegrambot.py {seperately)
 
-After registration, you'll receive a verification email.
+## 📄 Setup Instructions
 
-Click the activation link to verify and activate your account.
+# ------------------------------------------
+# User Registration & Email Verification
+# ------------------------------------------
+- ✅ Register on website
+- ✅ Receive email verification link
+- ✅ Click link to activate account
 
-💰 Stripe Payment Integration
-Upgrade to Pro in your profile section using Stripe.
+# ------------------------------------------
+# Profile & Stripe Payment
+# ------------------------------------------
+- 💳 Profile page includes Stripe upgrade
+- 🎖️ Pro User:
+    - Unlimited predictions (website & Telegram)
+    - Lifetime access
+- 🆓 Free User:
+    - 5 predictions per day (combined website & Telegram)
 
-Pro Users:
+# ------------------------------------------
+# Stock Prediction Feature
+# ------------------------------------------
+- 🔎 Predict ticker name
+- 📅 Select number of days to forecast
 
-Lifetime unlimited predictions on both website and Telegram.
+# ------------------------------------------
+# Telegram Bot Usage
+# ------------------------------------------
+$ python manage.py telegrambot.py
 
-Free Users:
+# Commands:
+  /start <email> <password>     # Link Telegram to website account (must register first)
+  /predict <ticker>             # Get future prediction
+  /latest                       # Get your latest prediction
+  /help                         # Show all commands
 
-Limited to 5 predictions per day (shared between website and Telegram).
+# User Limits:
+  - Free: 5 predictions/day total
+  - Pro: Unlimited
 
-📊 Stock Prediction
-Enter a stock ticker name and number of days to predict.
+# ------------------------------------------
+# Docker Deployment
+# ------------------------------------------
+# Build Docker image
+$ docker build . -t my-django-image
 
-Instantly receive predicted prices and insights.
+# Run using Docker Compose
+$ docker compose up
 
-🤖 Telegram Bot Integration
-Start the bot:
+# ------------------------------------------
+# Extra
+# ------------------------------------------
+- 🖥️ Web predictions + 📲 Telegram predictions = same daily count limit
+- 💬 Friendly UI built with Tailwind
+- 🔐 Secure authentication (email + JWT/session)
 
-bash
-Copy
-Edit
-python manage.py telegrambot.py
-Telegram Commands
-/start <email> <password>
-Link your Telegram account to your website account (must register first).
+# ------------------------------------------
+# Quick Start Flow
+# ------------------------------------------
+1️⃣ Register → Verify Email → Login  
+2️⃣ Upgrade to Pro (optional)  
+3️⃣ Predict on website or Telegram  
+4️⃣ Enjoy 🎉
 
-/predict <ticker>
-Get future price predictions for a given stock ticker.
-
-/latest
-Fetch your most recent prediction.
-
-/help
-Get help and see available commands.
-
-⚖️ Limitations:
-
-Free users: Up to 5 predictions per day (combined across website & Telegram).
-
-Pro users: Unlimited predictions.
-
-🐳 Docker Setup
-Build the Docker image
-bash
-Copy
-Edit
-docker build . -t my-django-image
-Run using Docker Compose
-bash
-Copy
-Edit
-docker compose up
-⚙️ Additional Commands
-Start the Telegram bot separately:
-
-bash
-Copy
-Edit
-python manage.py telegrambot.py
-✅ Quick Flow
-1️⃣ Register an account.
-2️⃣ Verify your email.
-3️⃣ Log in and optionally upgrade to Pro for unlimited predictions.
-4️⃣ Predict stock prices on the website or via Telegram.
-5️⃣ For Docker, build and run using the provided commands.
-
+# ------------------------------------------
+# License & Contribution
+# ------------------------------------------
+MIT License. PRs & issues welcome!
