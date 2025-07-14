@@ -46,7 +46,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = await sync_to_async(User.objects.get)(email=email)
         is_valid = await sync_to_async(user.check_password)(password)
         if not is_valid:
-            await update.message.reply_text("❌ Incorrect password. Please try again.")
+            await update.message.reply_text(" Incorrect password. Please try again.")
             return
 
         # Check if TelegramUser already exists for this user
@@ -67,12 +67,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
 
         await update.message.reply_text(
-            "✅ Your account is successfully linked to this Telegram chat!\n"
+            " Your account is successfully linked to this Telegram chat!\n"
             "You can now use /predict and /latest."
         )
 
     except ObjectDoesNotExist:
-        await update.message.reply_text("❌ No account found with that email. Please register first.")
+        await update.message.reply_text(" No account found with that email. Please register first.")
 
 
 async def predict(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -80,7 +80,7 @@ async def predict(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user, tg_user = await get_linked_user(chat_id)
     if not user:
-        await update.message.reply_text("❌ You need to link your account first. Use /start <email> <password>.")
+        await update.message.reply_text(" You need to link your account first. Use /start <email> <password>.")
         return
 
     # Get UserProfile
@@ -96,7 +96,7 @@ async def predict(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Check limit for non-pro users
     if not profile.is_pro and profile.daily_prediction_count >= 5:
         await update.message.reply_text(
-            "⚠️ You have used your 5 free predictions for today.\n"
+            " You have used your 5 free predictions for today.\n"
             "Upgrade to Pro to get unlimited predictions! 💎"
         )
         return
@@ -119,7 +119,7 @@ async def predict(update: Update, context: ContextTypes.DEFAULT_TYPE):
         price_str = f"{next_day_price:.2f}" if next_day_price is not None else "N/A"
 
         msg = (
-            f"📈 Prediction for {ticker}\n\n"
+            f"Prediction for {ticker}\n\n"
             f"Next-day price: {price_str}\n"
             f"Actual Prices: {actual_prices}\n"
             f"MSE: {mse:.4f}\n"
@@ -150,14 +150,14 @@ async def predict(update: Update, context: ContextTypes.DEFAULT_TYPE):
         with open(plot_pred_path, "rb") as pred_img:
             await update.message.reply_photo(pred_img)
 
-        logger.info(f"✅ Prediction sent to user_id={user.id}, ticker={ticker}")
+        logger.info(f" Prediction sent to user_id={user.id}, ticker={ticker}")
 
     except Exception as e:
-        logger.exception(f"❌ Prediction error for user_id={user.id}, ticker={ticker}: {str(e)}")
+        logger.exception(f" Prediction error for user_id={user.id}, ticker={ticker}: {str(e)}")
         try:
-            await update.message.reply_text(f"⚠️ Error during prediction: {str(e)}")
+            await update.message.reply_text(f" Error during prediction: {str(e)}")
         except Exception as e2:
-            logger.exception(f"⚠️ Also failed to send error message: {str(e2)}")
+            logger.exception(f" Also failed to send error message: {str(e2)}")
 
 
 async def latest(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -165,7 +165,7 @@ async def latest(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user, tg_user = await get_linked_user(chat_id)
     if not user:
-        await update.message.reply_text("❌ You need to link your account first. Use /start <email> <password>.")
+        await update.message.reply_text("You need to link your account first. Use /start <email> <password>.")
         return
 
     latest_pred = await sync_to_async(
@@ -173,13 +173,13 @@ async def latest(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )()
 
     if not latest_pred:
-        await update.message.reply_text("⚠️ No predictions found. Use /predict <TICKER> to get started.")
+        await update.message.reply_text(" No predictions found. Use /predict <TICKER> to get started.")
         return
 
     price = latest_pred.next_day_price if latest_pred.next_day_price is not None else "N/A"
 
     msg = (
-        f"📊 Latest prediction for {latest_pred.ticker}\n\n"
+        f"Latest prediction for {latest_pred.ticker}\n\n"
         f"Next-day price: {price:.2f}\n"
         f"Created at: {latest_pred.created_at.strftime('%Y-%m-%d %H:%M:%S')}"
     )
@@ -192,7 +192,7 @@ async def latest(update: Update, context: ContextTypes.DEFAULT_TYPE):
             with open(latest_pred.plot_pred_path, "rb") as pred_img:
                 await update.message.reply_photo(pred_img)
     except Exception as e:
-        await update.message.reply_text(f"⚠️ Could not send plot images: {str(e)}")
+        await update.message.reply_text(f" Could not send plot images: {str(e)}")
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):

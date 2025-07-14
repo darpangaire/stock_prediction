@@ -8,6 +8,7 @@ from plotly.offline import plot
 from plotly.subplots import make_subplots
 import pandas as pd
 from django.http import JsonResponse
+from rest_framework.views import APIView
 
 from rest_framework.decorators import api_view,permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -64,23 +65,22 @@ def health_check(request):
 
   
   
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def list_predictions(request):
-  ticker_filter = request.query_params.get("ticker")
-  date_filter = request.query_params.get("date")
-  
-  user = request.user
-  qs = Prediction.objects.filter(user=user)
-  
-  if ticker_filter:
-    qs = qs.filter(ticker__iexact = ticker_filter)
+
+
+class list_prediction_data(APIView):
+    permission_classes = [IsAuthenticated]
+    def GET(self,request,format=None):
+        serializer = PredictionSerializers(data = request.data)
+        try:
+            data = serializer.validated_data['']
+            return JsonResponse({"data":data})
+        except:
+            return JsonResponse({"error":"data isnot available"})
+        
+
+
+
     
-  if date_filter:
-    qs = qs.filter(created_at__date=date_filter)
-  
-  serializer = PredictionSerializers(qs.order_by("-created_at"),many=True)
-  return Response(serializer.data)
 
 
 def moving_average(series, window):
@@ -206,16 +206,20 @@ def home(request):
     })
  
  
+ 
+ 
 def predict(request):
     if request.method == 'POST':
         try:
             user = request.user
             telegram_user,created = TelegramUser.objects.get_or_create(user = user)
             userprofile,created = UserProfile.objects.get_or_create(user=telegram_user)
-            userprofile.daily_prediction_count += 1
-            userprofile.save()
-            if userprofile.daily_prediction_count >= 6:
-                return JsonResponse({"message": "Your daily prediction chance has been expired"}, status=400)
+            if not userprofile.is_pro and userprofile.daily_prediction_count  <= 5:
+                userprofile.daily_prediction_count += 1
+                userprofile.save()
+            if userprofile.daily_prediction_count >= 6 and not userprofile.is_pro:
+                return JsonResponse({"error": "Your daily prediction chance has been expired"}, status=400)
+            
             data = json.loads(request.body)
             ticker = data.get('ticker')
             n_days = int(data.get('days', 1))
@@ -263,5 +267,6 @@ def predict(request):
 #             'stocks':stocks
 #         }
 #     return render(request,'list_prediction.html',context)
+
 
 

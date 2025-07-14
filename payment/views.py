@@ -11,6 +11,10 @@ import stripe
 from django.conf import settings
 from .models import UserProfile
 from django.contrib.auth.decorators import login_required
+from rest_framework.decorators import api_view
+from api.models import Prediction
+from rest_framework.response import Response
+from api.serializers import PredictionSerializers
 # Create your views here.
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -71,32 +75,48 @@ from django.http import HttpResponse
 def stripe_webhook(request):
     payload = request.body
     sig_header = request.META['HTTP_STRIPE_SIGNATURE']
-    event = None
+    endpoint_secret = 'your_webhook_signing_secret'  # from your Stripe dashboard
 
     try:
         event = stripe.Webhook.construct_event(
-            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+            payload, sig_header, endpoint_secret
         )
-    except ValueError:
-        return HttpResponse(status=400)
-    except stripe.error.SignatureVerificationError:
-        return HttpResponse(status=400)
+    except ValueError as e:
+        # Invalid payload
+        return JsonResponse({'status': 'invalid payload'}, status=400)
+    except stripe.error.SignatureVerificationError as e:
+        # Invalid signature
+        return JsonResponse({'status': 'invalid signature'}, status=400)
 
-    if event["type"] == "checkout.session.completed":
-        session = event["data"]["object"]
-        user_id = session["client_reference_id"]
-        user = User.objects.get(id=user_id)
-        user.userprofile.is_pro = True
-        user.userprofile.save()
+    # Handle successful checkout session
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        client_reference_id = session.get('client_reference_id')
+        stripe_session_id = session.get('id')
 
-    return HttpResponse(status=200)
+        # Find the user by client_reference_id
+        user = User.objects.get(id=client_reference_id)
+        telegram_user, _ = TelegramUser.objects.get_or_create(user=user)
+        userprofile, _ = UserProfile.objects.get_or_create(user=telegram_user)
+
+        userprofile.is_pro = True
+        userprofile.stripe_subscription_id = stripe_session_id
+        userprofile.save()
+
+    return JsonResponse({'status': 'success'}, status=200)
+
 
 
 @login_required(login_url='login')
 def profile(request):
+    chance = 0
     telegram_user,created = TelegramUser.objects.get_or_create(user=request.user)
     userprofile,created = UserProfile.objects.get_or_create(user=telegram_user)
+    
     chance = 5 - int(userprofile.daily_prediction_count)
+    if chance <=0:
+        chance = 0 
+    
     context = {
         'userprofile':userprofile,
         'chance':chance,
@@ -106,5 +126,21 @@ def profile(request):
     return render(request,'payment.html',context)
 
 
+
+@api_view(['GET'])
+def list_prediction(request):
+    predictions = Prediction.objects.filter(user = request.user)
+    serializers = PredictionSerializers(predictions,many=True)
+    
+    return JsonResponse({"predictions":serializers.data})
+
+from rest_framework import generics
+from rest_framework.permissions import IsAuthenticated
+
+class List_prediction(generics.ListAPIView):
+    serializer_class = PredictionSerializers
+    
+    def get_queryset(self):
+        return Prediction.objects.filter(user=self.request.user)
 
 

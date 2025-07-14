@@ -22,7 +22,7 @@ def run_prediction(ticker, n_days=1):
     if df.empty:
         raise ValueError("No data found for ticker")
 
-    close_prices = df['Close'].values.reshape(-1, 1)
+    close_prices = df['Close'].values.reshape(-1, 1) # reshape is for making 2d data and (3, 1) 3 mean -1  = ? rows and 1 = want 1 column
     scaler = MinMaxScaler(feature_range=(0, 1))
     scaled_close = scaler.fit_transform(close_prices)
 
@@ -39,9 +39,9 @@ def run_prediction(ticker, n_days=1):
 
     # Predict next n_days using rolling window
     predicted_prices = []
-    current_input = X_input.copy()
-    for _ in range(n_days):
-        input_reshaped = np.expand_dims(current_input, axis=(0, 2))   # shape (1, 60, 1)
+    current_input = X_input.copy() # X_input is a 1D array of shape (60,)
+    for _ in range(n_days): # Each loop iteration = predict 1 day ahead.
+        input_reshaped = np.expand_dims(current_input, axis=(0, 2))  #np.expand_dims(current_input, axis=(0, 2)): shape (1, 60, 1)
         pred_scaled = model.predict(input_reshaped, verbose=0)
         pred_price = scaler.inverse_transform(pred_scaled)[0][0]
         predicted_prices.append(float(pred_price))
