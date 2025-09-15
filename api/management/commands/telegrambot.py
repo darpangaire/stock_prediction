@@ -195,6 +195,46 @@ async def latest(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f" Could not send plot images: {str(e)}")
 
 
+async def history(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+
+    user, tg_user = await get_linked_user(chat_id)
+    if not user:
+        await update.message.reply_text("You need to link your account first. Use /start <email> <password>.")
+        return
+
+    # Get latest prediction
+    predictions = await sync_to_async(
+        lambda: Prediction.objects.filter(user=user).order_by("-created_at")
+    )()
+
+    if not predictions:
+        await update.message.reply_text("No predictions found. Use /predict <TICKER> to get started.")
+        return
+
+    # Prepare message
+    msg = "Your predictions:\n\n"
+    for p in predictions:
+        price = f"{p.next_day_price:.2f}" if p.next_day_price is not None else "N/A"
+        msg += (
+            f"Ticker: {p.ticker}\n"
+            f"Next-day price: {price}\n"
+            f"Created at: {p.created_at.strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+        )
+
+    # Telegram message size limit workaround
+    if len(msg) > 4000:
+        # Split into smaller chunks
+        for i in range(0, len(msg), 4000):
+            await update.message.reply_text(msg[i:i+4000])
+    else:
+        await update.message.reply_text(msg)
+
+
+
+
+
+
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Available commands:\n"
@@ -221,6 +261,7 @@ class Command(BaseCommand):
         app.add_handler(CommandHandler("help", help_command))
         app.add_handler(CommandHandler("predict", predict))
         app.add_handler(CommandHandler("latest", latest))
+        app.add_handler(CommandHandler("history", history))
 
         logger.info("Telegram bot started using long polling...")
 

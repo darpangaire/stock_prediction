@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import UserRegistrationView,UserLoginView,register_view,email_verification_alert,login_view,verify_email_and_redirect,logout_view
+from .views import UserRegistrationView,UserLoginView,register_view,email_verification_alert,login_view,verify_email_and_redirect,logout_view,test_user
 
 urlpatterns = [
   path("api-register/",UserRegistrationView.as_view(),name='apiRegister'),
@@ -12,7 +12,7 @@ urlpatterns = [
   
   path('login/',login_view,name='login'),
   path('logout/',logout_view,name='logout'),
-
+  path('test-user/', test_user, name='test_user'),
   
 ]
 

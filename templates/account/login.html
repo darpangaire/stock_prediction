@@ -49,13 +49,13 @@
   const form = document.getElementById('loginForm');
   const msgDiv = document.getElementById('loginMessage');
 
-  form.addEventListener('submit', async function(e) {
+  form.addEventListener('submit', async function (e) {
     e.preventDefault();
-    msgDiv.innerHTML = "";
+    msgDiv.innerHTML = `<div class="text-blue-500 font-semibold">Logging in...</div>`;
 
     const data = {
       email: form.email.value,
-      password: form.password.value
+      password: form.password.value,
     };
 
     try {
@@ -63,10 +63,10 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
+          'X-CSRFToken': getCookie('csrftoken'),
         },
         body: JSON.stringify(data),
-        credentials: 'include'
+        credentials: 'include', // ✅ important: sends/receives sessionid cookie
       });
 
       const resData = await response.json();
@@ -74,22 +74,32 @@
       if (response.ok) {
         msgDiv.innerHTML = `<div class="text-green-600 font-semibold">${resData.msg || "Login successful!"}</div>`;
         setTimeout(() => {
-          window.location.href = "/";
-        }, 1200);
+          window.location.assign("/");  // ✅ works with session
+        }, 1000);
       } else {
         let errorHtml = '<div class="text-red-600 font-semibold mb-2">Login failed:</div>';
-        if (typeof resData === "object") {
-          for (const [field, errors] of Object.entries(resData)) {
-            errorHtml += `<div class="text-red-500"><span class="font-semibold">${field}:</span> ${Array.isArray(errors) ? errors.join(', ') : errors}</div>`;
-          }
-        } else {
-          errorHtml += `<div class="text-red-500">${resData}</div>`;
-        }
+        errorHtml += `<div class="text-red-500">${resData.error || "Unknown error"}</div>`;
         msgDiv.innerHTML = errorHtml;
       }
     } catch (err) {
-      msgDiv.innerHTML = `<div class="text-red-600">An error occurred. Please try again.</div>`;
+      msgDiv.innerHTML = `<div class="text-red-600">Error: ${err.message}. Please try again.</div>`;
     }
   });
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
 </script>
+
 

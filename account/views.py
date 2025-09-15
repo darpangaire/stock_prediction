@@ -16,6 +16,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
 from django.contrib.auth import logout
 from django.conf import settings
+from rest_framework.permissions import IsAuthenticated
 
 # Create your views here.
 
@@ -55,15 +56,18 @@ class UserRegistrationView(APIView):
 
 class UserLoginView(APIView):
     def post(self, request, format=None):
-        serializer = LoginUserSerializers(data=request.data, context={'request': request})
-        if serializer.is_valid():
-            user = serializer.validated_data['user']
-            login(request, user)  # <- This sets session and request.user!
+        email = request.data.get("email")
+        password = request.data.get("password")
 
-            return Response({"msg": "Login Successful"}, status=status.HTTP_200_OK)
+        user = authenticate(request, username=email, password=password)
+        if user is not None:
+            login(request, user)  # ✅ logs the user into Django session
+            return Response({"msg": "Login successful"}, status=status.HTTP_200_OK)
         else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+            return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
+          
+
+   
     
 def register_view(request):
   return render(request,'account/register.html')
@@ -90,6 +94,7 @@ def verify_email_and_redirect(request, uidb64, token):
 
 
 def login_view(request):
+  
   return render(request,'account/login.html')
 
 
@@ -99,5 +104,12 @@ def logout_view(request):
   response.delete_cookie('jwt')
   return response
 
+from django.http import JsonResponse
 
+def test_user(request):
+    if request.user.is_authenticated:
+        return JsonResponse({'user': request.user.email})
+    return JsonResponse({'error': 'Unauthenticated'}, status=401)
+
+ 
   
