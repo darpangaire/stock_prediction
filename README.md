@@ -1,3 +1,5 @@
+<img width="1366" height="768" alt="Image" src="https://github.com/user-attachments/assets/3d7974df-9ba7-4288-bc32-d190d856d554" />
+
 # 📈 AI-Powered Stock Prediction App with Telegram Integration
 
 This project is an **AI-powered stock prediction platform** that allows users to check real-time stock prices and compare them with AI-predicted prices.  
@@ -47,4 +49,4 @@ python manage.py runserver
 python manage.py telegrambot  (--> run seperate terminal)
 
 
-<!-- Uploading "Screenshot from 2025-09-16 11-41-22.png"... -->
+
