@@ -47,4 +47,4 @@ python manage.py runserver
 python manage.py telegrambot  (--> run seperate terminal)
 
 
-<img width="1366" height="768" alt="Image" src="https://github.com/user-attachments/assets/a9751c45-e4a3-4747-b74c-be61955f6bae" />
+<!-- Uploading "Screenshot from 2025-09-16 11-41-22.png"... -->
